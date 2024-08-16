@@ -66,3 +66,7 @@ module "vpc" {
 
   tags = local.tags
 }
+
+resource "aws_ecr_repository" "up-devops-webapp" {
+  name = "up-devops-webapp"
+}
