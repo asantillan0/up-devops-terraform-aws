@@ -74,42 +74,32 @@ module "ec2" {
     CodeDeployAccess             = "arn:aws:iam::563935605077:policy/CodeDeployAccess"
   }
   user_data = <<-EOF
-      #!/bin/bash
+    #!/bin/bash
+    
+    # Update the package index
+    sudo yum update -y
+    
+    # Install Docker
+    sudo yum install -y docker
+    
+    # Start the Docker service
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    
+    # Retrieve the New Relic API key from Parameter Store
+    NEW_RELIC_API_KEY=$(aws ssm get-parameter --name "new-relic-linux" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+    
+    # Install New Relic using the retrieved API key
+    curl -Ls https://download.newrelic.com/install/newrelic-cli/scripts/install.sh | bash
+    sudo NEW_RELIC_API_KEY=$NEW_RELIC_API_KEY NEW_RELIC_ACCOUNT_ID=3510195 /usr/local/bin/newrelic install
   
-      # Actualizar el índice de paquetes
-      sudo yum update -y
-  
-      # Instalar Docker
-      sudo yum install -y docker
-  
-      # Iniciar el servicio de Docker
-      sudo systemctl start docker
-      sudo systemctl enable docker
-  
-      # Instalar Ruby y wget para el agente de CodeDeploy
-      sudo yum install -y ruby wget
-  
-      # Instalar el agente de CodeDeploy
-      cd /tmp
-      wget https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
-      chmod +x install
-      sudo ./install auto
-  
-      # Recuperar la clave de API de New Relic desde Parameter Store
-      NEW_RELIC_API_KEY=$(aws ssm get-parameter --name "new-relic-linux" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
-  
-      # Instalar New Relic usando la clave de API recuperada
-      curl -Ls https://download.newrelic.com/install/newrelic-cli/scripts/install.sh | bash
-      sudo NEW_RELIC_API_KEY=$NEW_RELIC_API_KEY NEW_RELIC_ACCOUNT_ID=3510195 /usr/local/bin/newrelic install
-  
-      #!/bin/bash
-      # Iniciar sesión en Amazon ECR
-      aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin 563935605077.dkr.ecr.us-east-1.amazonaws.com
-      
-      #!/bin/bash
-      # Descargar la última versión de la imagen y ejecutar el contenedor
-      sudo docker pull 563935605077.dkr.ecr.us-east-1.amazonaws.com/up-devops-webapp:develop
-      sudo docker run -d -p 3000:3000 --name up_devops_backend 563935605077.dkr.ecr.us-east-1.amazonaws.com/up-devops-webapp:develop
-
+    # Pull the Docker image from ECR
+    aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin 563935605077.dkr.ecr.us-east-1.amazonaws.com
+    
+    # Pull the image
+    sudo docker pull 563935605077.dkr.ecr.us-east-1.amazonaws.com/up-devops-webapp:develop
+    
+    # Run the Docker container
+    sudo docker run -d -p 3000:3000 --name up_devops_backend 563935605077.dkr.ecr.us-east-1.amazonaws.com/up-devops-webapp:develop
   EOF
 }
