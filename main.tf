@@ -102,6 +102,14 @@ module "ec2" {
       curl -Ls https://download.newrelic.com/install/newrelic-cli/scripts/install.sh | bash
       sudo NEW_RELIC_API_KEY=$NEW_RELIC_API_KEY NEW_RELIC_ACCOUNT_ID=3510195 /usr/local/bin/newrelic install
   
-      # Fin del script de user data
+      #!/bin/bash
+      # Iniciar sesión en Amazon ECR
+      aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin 563935605077.dkr.ecr.us-east-1.amazonaws.com
+      
+      #!/bin/bash
+      # Descargar la última versión de la imagen y ejecutar el contenedor
+      sudo docker pull 563935605077.dkr.ecr.us-east-1.amazonaws.com/up-devops-webapp:develop
+      sudo docker run -d -p 3000:3000 --name up_devops_backend 563935605077.dkr.ecr.us-east-1.amazonaws.com/up-devops-webapp:develop
+
   EOF
 }
